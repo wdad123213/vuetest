@@ -1,76 +1,81 @@
 <template>
    <div class="app">
-      <h3><span>To-Do-List</span></h3>
-      <h2>~Today I need to ~</h2>
-      <p class="search">
-         <input type="text" placeholder="todo..." @keydown.13="add()" ref="inp">
-         <button @click="add()">submit</button>
-      </p>
-      <ul class="list">
-         <li v-for="(item, i) in curData ? curData : arr" :key="item.id" :class="{ activeLi: item.flag }">
-            <div class="list-left">
-               <input type="checkbox" v-model="item.flag"><span :class="{ activeSpan: item.flag }">{{ item.con }}</span>
-            </div>
-            <div class="list-right">
-               <b @click="curData ? curData.splice(i, 1) : arr.splice(i, 1)">&times;</b>
-            </div>
-         </li>
-      </ul>
-      <div class="btm">
-         <div><span>{{ continueList.length }}</span>未完成</div>
-         <div class="btn">
-            <button @click="curData = arr" :class="{ show: curData === arr }">全部</button>
-            <button v-show="showFlag" @click="curData = continueList"
-               :class="{ show: curData === continueList }">未完成</button>
-            <button v-show="showFlag" @click="curData = finishList"
-               :class="{ show: curData === finishList }">已完成</button>
-            <button v-show="continueList.length + finishList.length > 0" @click="clearListFn(finishList)"
-               :class="clearFlag">清空已完成</button>
-         </div>
+      <Header :arr="arr"></Header>
+      <div class="list">
+         <Content v-for="item in curData ? curData : arr " :key="item.id" :isflag="item.flag" :text="item.con"
+            @del="delList(item.id)" v-model="item.flag" />
       </div>
+      <!-- <div class="btm">
+         <div><span>{{ endList.length }}</span>未完成</div>
+         <div class="btn">
+            <button @click="curData = null; allFlag = true" :class="{ show: allFlag }">全部</button>
+            <button v-show="showFlag" @click="curList(false); allFlag = false"
+               :class="{ show: curData && curData.every(item => !item.flag) }" ref="no">未完成</button>
+            <button v-show="showFlag" @click="curList(true); allFlag = false"
+               :class="{ show: curData && curData.every(item => item.flag) }" ref="ok">已完成</button>
+            <button v-if="endList.length < arr.length" @click="clearListFn()" :class="clearFlag">清空已完成</button>
+         </div>
+      </div> -->
+      <Footer :arr="arr" :curData="curData" :endList="endList" :showFlag="showFlag" :clearFlag="clearFlag" :allFlag="allFlag" @curList="curList" @clearListFn="clearListFn" v-model="allFlag" @ClearcurData="ClearcurData"></Footer>
    </div>
 </template>
 
 <script>
+import Header from './components/Header.vue';
+import Content from './components/Content.vue';
+import Footer from './components/Footer.vue';
 
 export default {
    name: "App",
    components: {
+      Header,
+      Content,
+      Footer
    },
    data() {
       return {
          arr: [],
          showFlag: false,
          curData: null,
-         clearFlag: false
+         clearFlag: false,
+         allFlag: true
       }
    },
    methods: {
-      add() {
-         let str = this.$refs.inp.value.trim()
-         if (str) this.arr.push({ id: Date.now(), con: str, flag: false })
-         this.$refs.inp.value = ''
-         this.$refs.inp.focus()
+      clearListFn() {
+         this.curData = null;
+         this.arr = this.arr.filter(v => !v.flag)
+         this.clearFlag = true;
+         this.allFlag = true;
       },
-      clearListFn(finishList) {
-         this.arr.forEach((v, i) => {
-            finishList.forEach(item => {
-               if (v.id === item.id) {
-                  this.arr.splice(i, 1)
-               }
-            })
-         })
-         this.curData = this.continueList;
-         this.clearFlag = true
+      delList(id) {
+         if (this.curData) {
+            this.curData = this.curData.filter(v => v.id != id)
+            if (this.curData.length === 0) {
+               this.curData = null
+               this.allFlag = true
+            }
+         }
+         this.arr = this.arr.filter(v => v.id != id)
+
+      },
+      curList(flag) {
+         this.curData = this.arr.filter(item => item.flag === flag)
+      },
+      ClearcurData(){
+         this.curData=null
       }
    },
    watch: {
       arr: {
          handler() {
-            if (this.arr.every(v => v.flag === true)) {
+            if (this.arr.every(v => v.flag === true) || this.arr.every(v => v.flag === false)) {
                this.showFlag = false
             } else {
                this.showFlag = true
+            }
+            if (this.curData) {
+               this.curList(this.$refs.no.className === 'show' ? false : true)
             }
          },
          deep: true,
@@ -78,15 +83,9 @@ export default {
       }
    },
    computed: {
-      finishList() {
-         return this.arr.filter(v => v.flag === true)
-      },
-      continueList() {
-         return this.arr.filter(v => v.flag === false)
-      },
-      clearList() {
+      endList() {
          return this.arr.filter(v => !v.flag)
-      },
+      }
    }
 };
 </script>
@@ -124,7 +123,7 @@ body {
    padding: 50px;
 }
 
-h3 {
+/* h3 {
    height: 60px;
    overflow: hidden;
    display: flex;
@@ -167,9 +166,9 @@ h2 {
 .search button {
    padding: 0 10px;
    font-size: 16px;
-}
+} */
 
-ul {
+.list {
    min-height: 200px;
 }
 
